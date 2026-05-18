@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Password Generator</title>
+  <style>
+    :root {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #1f2937;
+      background: #f4f7fb;
+      line-height: 1.5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      width: min(540px, 92vw);
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+      padding: 36px;
+    }
+
+    .title {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    .description {
+      margin: 0 0 28px;
+      color: #6b7280;
+    }
+
+    .form-group {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    input[type='range'] {
+      width: 100%;
+    }
+
+    input[type='number'],
+    input[type='text'] {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    input[type='text'] {
+      font-family: monospace;
+    }
+
+    .options {
+      display: grid;
+      gap: 12px;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      background: #f8fafc;
+    }
+
+    .option input {
+      width: 18px;
+      height: 18px;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .generate {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .copy {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .message {
+      margin-top: 16px;
+      min-height: 26px;
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .message.success {
+      color: #047857;
+    }
+
+    .footer {
+      margin-top: 28px;
+      color: #6b7280;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1 class="title">Password Generator</h1>
+    <p class="description">Create a strong password by choosing the length and the character types to include.</p>
+
+    <div class="form-group">
+      <div class="slider-row">
+        <label for="length">Password Length</label>
+        <span id="lengthValue">16</span>
+      </div>
+      <input id="length" type="range" min="8" max="32" value="16" />
+    </div>
+
+    <div class="form-group options">
+      <label class="option"><input id="uppercase" type="checkbox" checked /> Uppercase letters</label>
+      <label class="option"><input id="lowercase" type="checkbox" checked /> Lowercase letters</label>
+      <label class="option"><input id="numbers" type="checkbox" checked /> Numbers</label>
+      <label class="option"><input id="symbols" type="checkbox" /> Special characters</label>
+    </div>
+
+    <div class="form-group">
+      <label for="passwordOutput">Generated Password</label>
+      <input id="passwordOutput" type="text" readonly placeholder="Your password will appear here" />
+    </div>
+
+    <div class="buttons">
+      <button id="generateBtn" class="generate" type="button">Generate Password</button>
+      <button id="copyBtn" class="copy" type="button">Copy Password</button>
+    </div>
+
+    <p id="message" class="message" aria-live="polite"></p>
+
+    <p class="footer">Password length must be between 8 and 32, and at least one character type selected.</p>
+  </main>
+
+  <script>
+    const lengthInput = document.getElementById('length');
+    const lengthValue = document.getElementById('lengthValue');
+    const uppercaseCheckbox = document.getElementById('uppercase');
+    const lowercaseCheckbox = document.getElementById('lowercase');
+    const numbersCheckbox = document.getElementById('numbers');
+    const symbolsCheckbox = document.getElementById('symbols');
+    const passwordOutput = document.getElementById('passwordOutput');
+    const generateBtn = document.getElementById('generateBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const messageEl = document.getElementById('message');
+
+    const charSets = {
+      uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      lowercase: 'abcdefghijklmnopqrstuvwxyz',
+      numbers: '0123456789',
+      symbols: '!@#$%^&*()-_=+[]{}|;:,.<>?'
+    };
+
+    lengthValue.textContent = lengthInput.value;
+
+    lengthInput.addEventListener('input', () => {
+      lengthValue.textContent = lengthInput.value;
+    });
+
+    generateBtn.addEventListener('click', () => {
+      const length = Number(lengthInput.value);
+      const options = {
+        uppercase: uppercaseCheckbox.checked,
+        lowercase: lowercaseCheckbox.checked,
+        numbers: numbersCheckbox.checked,
+        symbols: symbolsCheckbox.checked
+      };
+
+      const selectedTypes = Object.keys(options).filter(key => options[key]);
+      if (!selectedTypes.length) {
+        showMessage('Select at least one character type.', 'error');
+        passwordOutput.value = '';
+        return;
+      }
+
+      if (length < 8 || length > 32) {
+        showMessage('Length must be between 8 and 32.', 'error');
+        passwordOutput.value = '';
+        return;
+      }
+
+      const password = createPassword(length, options);
+      passwordOutput.value = password;
+      showMessage('Password generated successfully!', 'success');
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const password = passwordOutput.value.trim();
+      if (!password) {
+        showMessage('Generate a password first before copying.', 'error');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(password);
+        showMessage('Password copied to clipboard!', 'success');
+      } catch (error) {
+        passwordOutput.select();
+        document.execCommand('copy');
+        showMessage('Password copied using fallback method.', 'success');
+      }
+    });
+
+    function createPassword(length, options) {
+      const activeSets = [];
+      if (options.uppercase) activeSets.push(charSets.uppercase);
+      if (options.lowercase) activeSets.push(charSets.lowercase);
+      if (options.numbers) activeSets.push(charSets.numbers);
+      if (options.symbols) activeSets.push(charSets.symbols);
+
+      let password = '';
+      let allCharacters = activeSets.join('');
+
+      // Guarantee at least one character from each selected type
+      activeSets.forEach(set => {
+        password += set[Math.floor(Math.random() * set.length)];
+      });
+
+      for (let i = password.length; i < length; i += 1) {
+        password += allCharacters[Math.floor(Math.random() * allCharacters.length)];
+      }
+
+      return shuffleString(password);
+    }
+
+    function shuffleString(text) {
+      const array = text.split('');
+      for (let i = array.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array.join('');
+    }
+
+    function showMessage(message, type) {
+      messageEl.textContent = message;
+      messageEl.className = type === 'success' ? 'message success' : 'message';
+    }
+  </script>
+</body>
+</html>
